@@ -3,42 +3,34 @@ package k8sutil
 import (
 	"github.com/Sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
-	coreType "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 // KubeInterface abstracts the k8s api
 type KubeInterface interface {
-	Secrets(namespace string) coreType.SecretInterface
-	Namespaces() coreType.NamespaceInterface
-	ServiceAccounts(namespace string) coreType.ServiceAccountInterface
+	CreateSecret(namespace string, secret *v1.Secret) error
+	GetSecret(namespace, secretname string) (*v1.Secret, error)
+	UpdateSecret(namespace string, secret *v1.Secret) error
+
+	GetNamespaces() (*v1.NamespaceList, error)
+
+	GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error)
+	UpdateServiceAccount(namespace string, sa *v1.ServiceAccount) error
+	// WatchAll(labelSelector string, stopCh <-chan struct{}) (<-chan interface{}, error)
 }
 
-type K8sutilInterface struct {
-	Kclient    KubeInterface
-	MasterHost string
+type kubeImpl struct {
+	secretsController *cache.Controller
+	secretsStore      cache.Store
+
+	Clientset *kubernetes.Clientset
 }
 
-// New creates a new instance of k8sutil
-func New(kubeCfgFile, masterHost string) (*K8sutilInterface, error) {
-
-	client, err := newKubeClient(kubeCfgFile)
-
-	if err != nil {
-		logrus.Fatalf("Could not init Kubernetes client! [%s]", err)
-	}
-
-	k := &K8sutilInterface{
-		Kclient:    client,
-		MasterHost: masterHost,
-	}
-
-	return k, nil
-}
-
-func newKubeClient(kubeCfgFile string) (KubeInterface, error) {
+// New returns a new instance of KubeInterface
+func New(kubeCfgFile string) (KubeInterface, error) {
 
 	var client *kubernetes.Clientset
 
@@ -72,12 +64,31 @@ func newKubeClient(kubeCfgFile string) (KubeInterface, error) {
 		}
 	}
 
-	return client, nil
+	return &kubeImpl{
+		Clientset: client,
+	}, nil
 }
 
+// // WatchSecrets starts the watch of Kubernetes secrets resources and updates the corresponding store
+// func (k *kubeImpl) WatchSecrets(labelSelector labels.Selector, watchCh chan<- interface{}, stopCh <-chan struct{}) {
+// 	source := NewListWatchFromClient(
+// 		k.Kclient.ExtensionsClient,
+// 		"ingresses",
+// 		api.NamespaceAll,
+// 		fields.Everything(),
+// 		labelSelector)
+
+// 	k.secretsStore, k.secretsController = cache.NewListWatchFromClient(
+// 		source,
+// 		&v1beta1.Ingress{},
+// 		resyncPeriod,
+// 		newResourceEventHandlerFuncs(watchCh))
+// 	go c.ingController.Run(stopCh)
+// }
+
 // GetNamespaces returns all namespaces
-func (k *K8sutilInterface) GetNamespaces() (*v1.NamespaceList, error) {
-	namespaces, err := k.Kclient.Namespaces().List(v1.ListOptions{})
+func (k *kubeImpl) GetNamespaces() (*v1.NamespaceList, error) {
+	namespaces, err := k.Clientset.Namespaces().List(v1.ListOptions{})
 	if err != nil {
 		logrus.Error("Error getting namespaces: ", err)
 		return nil, err
@@ -87,8 +98,8 @@ func (k *K8sutilInterface) GetNamespaces() (*v1.NamespaceList, error) {
 }
 
 // GetSecret get a secret
-func (k *K8sutilInterface) GetSecret(namespace, secretname string) (*v1.Secret, error) {
-	secret, err := k.Kclient.Secrets(namespace).Get(secretname)
+func (k *kubeImpl) GetSecret(namespace, secretname string) (*v1.Secret, error) {
+	secret, err := k.Clientset.Secrets(namespace).Get(secretname)
 	if err != nil {
 		logrus.Error("Error getting secret: ", err)
 		return nil, err
@@ -98,8 +109,8 @@ func (k *K8sutilInterface) GetSecret(namespace, secretname string) (*v1.Secret, 
 }
 
 // CreateSecret creates a secret
-func (k *K8sutilInterface) CreateSecret(namespace string, secret *v1.Secret) error {
-	_, err := k.Kclient.Secrets(namespace).Create(secret)
+func (k *kubeImpl) CreateSecret(namespace string, secret *v1.Secret) error {
+	_, err := k.Clientset.Secrets(namespace).Create(secret)
 
 	if err != nil {
 		logrus.Error("Error creating secret: ", err)
@@ -110,8 +121,8 @@ func (k *K8sutilInterface) CreateSecret(namespace string, secret *v1.Secret) err
 }
 
 // UpdateSecret updates a secret
-func (k *K8sutilInterface) UpdateSecret(namespace string, secret *v1.Secret) error {
-	_, err := k.Kclient.Secrets(namespace).Update(secret)
+func (k *kubeImpl) UpdateSecret(namespace string, secret *v1.Secret) error {
+	_, err := k.Clientset.Secrets(namespace).Update(secret)
 
 	if err != nil {
 		logrus.Error("Error updating secret: ", err)
@@ -122,8 +133,8 @@ func (k *K8sutilInterface) UpdateSecret(namespace string, secret *v1.Secret) err
 }
 
 // GetServiceAccount updates a secret
-func (k *K8sutilInterface) GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error) {
-	sa, err := k.Kclient.ServiceAccounts(namespace).Get(name)
+func (k *kubeImpl) GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error) {
+	sa, err := k.Clientset.ServiceAccounts(namespace).Get(name)
 
 	if err != nil {
 		logrus.Error("Error getting service account: ", err)
@@ -134,8 +145,8 @@ func (k *K8sutilInterface) GetServiceAccount(namespace, name string) (*v1.Servic
 }
 
 // UpdateServiceAccount updates a secret
-func (k *K8sutilInterface) UpdateServiceAccount(namespace string, sa *v1.ServiceAccount) error {
-	_, err := k.Kclient.ServiceAccounts(namespace).Update(sa)
+func (k *kubeImpl) UpdateServiceAccount(namespace string, sa *v1.ServiceAccount) error {
+	_, err := k.Clientset.ServiceAccounts(namespace).Update(sa)
 
 	if err != nil {
 		logrus.Error("Error updating service account: ", err)

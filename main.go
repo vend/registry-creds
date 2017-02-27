@@ -65,7 +65,7 @@ var (
 )
 
 type controller struct {
-	k8sutil   *k8sutil.K8sutilInterface
+	k8sutil   k8sutil.KubeInterface
 	ecrClient ecrInterface
 	gcrClient gcrInterface
 }
@@ -291,7 +291,7 @@ func main() {
 	log.Printf("Using AWS Region: %s", *argAWSRegion)
 	log.Print("Refresh Interval (minutes): ", *argRefreshMinutes)
 
-	util, err := k8sutil.New(*argKubecfgFile, *argKubeMasterURL)
+	util, err := k8sutil.New(*argKubecfgFile)
 
 	if err != nil {
 		logrus.Error("Could not create k8s client!!", err)
