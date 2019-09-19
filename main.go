@@ -44,7 +44,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
 const (
@@ -448,6 +448,7 @@ func validateParams() {
 	awsAccountIDEnv := os.Getenv("awsaccount")
 	awsRegionEnv := os.Getenv("awsregion")
 	argAWSAssumeRoleEnv := os.Getenv("aws_assume_role")
+	argAWSSecretName := os.Getenv("aws_secret_name")
 	dprPassword := os.Getenv(dockerPrivateRegistryPasswordKey)
 	dprServer := os.Getenv(dockerPrivateRegistryServerKey)
 	dprUser := os.Getenv(dockerPrivateRegistryUserKey)
@@ -578,6 +579,7 @@ func main() {
 	logrus.Info("Using AWS Account: ", strings.Join(awsAccountIDs, ","))
 	logrus.Info("Using AWS Region: ", *argAWSRegion)
 	logrus.Info("Using AWS Assume Role: ", *argAWSAssumeRole)
+	logrus.Info("Using AWS Secret name: ", *argAWSSecretName)
 	logrus.Info("Refresh Interval (minutes): ", *argRefreshMinutes)
 	logrus.Infof("Retry Timer: %s", RetryCfg.Type)
 	logrus.Info("Token Generation Retries: ", RetryCfg.NumberOfRetries)
