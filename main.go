@@ -583,7 +583,7 @@ func main() {
 	logrus.Info("Using AWS Account: ", strings.Join(awsAccountIDs, ","))
 	logrus.Info("Using AWS Region: ", *argAWSRegion)
 	logrus.Info("Using AWS Assume Role: ", *argAWSAssumeRole)
-	logrus.Info("Using AWS Secret name: ", *argAWSSecretName)
+	logrus.Info("Using AWS Secret Name: ", *argAWSSecretName)
 	logrus.Info("Refresh Interval (minutes): ", *argRefreshMinutes)
 	logrus.Infof("Retry Timer: %s", RetryCfg.Type)
 	logrus.Info("Token Generation Retries: ", RetryCfg.NumberOfRetries)
