@@ -448,7 +448,7 @@ func validateParams() {
 	awsAccountIDEnv := os.Getenv("awsaccount")
 	awsRegionEnv := os.Getenv("awsregion")
 	argAWSAssumeRoleEnv := os.Getenv("aws_assume_role")
-	argAWSSecretName := os.Getenv("aws_secret_name")
+	argAWSSecretNameEnv := os.Getenv("aws_secret_name")
 	dprPassword := os.Getenv(dockerPrivateRegistryPasswordKey)
 	dprServer := os.Getenv(dockerPrivateRegistryServerKey)
 	dprUser := os.Getenv(dockerPrivateRegistryUserKey)
@@ -542,6 +542,10 @@ func validateParams() {
 
 	if len(argAWSAssumeRoleEnv) > 0 {
 		argAWSAssumeRole = &argAWSAssumeRoleEnv
+	}
+
+	if len(argAWSSecretNameEnv) > 0 {
+		argAWSSecretName = &argAWSSecretNameEnv
 	}
 }
 
